@@ -48,6 +48,7 @@ int main(int argc, char *argv[])
     long t;
     long cpyt[NUM_THREADS];
     
+o
     /* Spawn NUM_THREADS threads */
     for(t=0;t<NUM_THREADS;t++){
 	printf("In main: creating thread %ld\n", t);
