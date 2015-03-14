@@ -6,6 +6,7 @@
  * Modify Date: 2015/03/16
  */
 
+#include <pthread.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -20,7 +21,7 @@
 #define SBUFSIZE 1025
 #define INPUTFS "%1024s"
 #define Q_SIZE 100
-#define NUM_THREADS 5
+#define NUM_THREADS 2
 
 void* Requester_function(void* vpoi){
 	char* hostnames[Q_SIZE];
@@ -136,8 +137,10 @@ int main(int argc, char* argv[]){
     FILE* outputfp = NULL;
     char errorstr[SBUFSIZE];
     int i;
-    int numstructs=argc;
+    int rc;
+    int numstructs=argc-1;
     numstructs=numstructs;
+    pthread_t threads[NUM_THREADS];
     /* Need to malloc these? XXXXXXX */ 
     struct threadstuff stuffs[2];     
     int finish[1];
@@ -161,6 +164,8 @@ int main(int argc, char* argv[]){
 	perror("Error Opening Output File");
 	return EXIT_FAILURE;
     }
+
+
     /* Struct for resolver threads */
     stuffs[0].fpoi = outputfp;
     stuffs[0].qpoi = &theq;
@@ -181,8 +186,28 @@ int main(int argc, char* argv[]){
 	stuffs[1].qpoi = &theq;
 	stuffs[1].intpoi = &finish[0];
 
-	Requester_function(&stuffs[1]);
-	Resolver_function(&stuffs[0]);
+
+        /* Spawn requester thread */
+        printf("In main: creating requester thread\n");
+        rc = pthread_create(&(threads[0]), NULL, Requester_function, &stuffs[1]);
+        if (rc){
+            printf("ERROR; return code from pthread_create() is %d\n", rc);
+            exit(EXIT_FAILURE);
+        }
+	(void) pthread_join(threads[0], NULL);
+
+        /* Spawn resolver thread */
+        printf("In main: creating resolver thread\n");
+        rc = pthread_create(&(threads[1]), NULL, Resolver_function, &stuffs[0]);
+        if (rc){
+            printf("ERROR; return code from pthread_create() is %d\n", rc);
+            exit(EXIT_FAILURE);
+        }
+	(void) pthread_join(threads[1], NULL);
+	// function calls - non-threaded 
+	//Requester_function(&stuffs[1]);
+	//Resolver_function(&stuffs[0]);
+	
 
 	/* Close Input File */
 	fclose(inputfp);
