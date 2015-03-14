@@ -22,10 +22,9 @@
 #define Q_SIZE 100
 #define NUM_THREADS 5
 
-void* Requester_function(FILE* inf, queue* qpoint,void* vpoi){
+void* Requester_function(void* vpoi){
 	char* hostnames[Q_SIZE];
 	int i;
-	inf=inf;
 	struct threadstuff* stuf = vpoi;
 	/* Setup hostnames as char* array from
 	 * 0 to Q_SIZE-1 */
@@ -36,7 +35,7 @@ void* Requester_function(FILE* inf, queue* qpoint,void* vpoi){
 	/* Read File and Process*/
 	while(fscanf(stuf->fpoi, INPUTFS, hostnames[i]) > 0){
 	    /* Write to queue */
-	    if(queue_push(qpoint, hostnames[i]) == QUEUE_FAILURE){
+	    if(queue_push(stuf->qpoi, hostnames[i]) == QUEUE_FAILURE){
               fprintf(stderr,
                     "error: queue_push failed!\n"
                     "Hostname: %s\n",
@@ -52,11 +51,12 @@ void* Requester_function(FILE* inf, queue* qpoint,void* vpoi){
 	return NULL;
 } 
 
-void* Resolver_function(FILE* outputfile, queue* qpoint,void* vpoi){
+void* Resolver_function(void* vpoi){
     char* hname;
     char firstipstr[INET6_ADDRSTRLEN];
-    while(!queue_is_empty(qpoint)){
-	if((hname = queue_pop(qpoint)) == NULL){
+    struct threadstuff* stuf = vpoi;
+    while(!queue_is_empty(stuf->qpoi)){
+	if((hname = queue_pop(stuf->qpoi)) == NULL){
           fprintf(stderr,
                   "error: queue_pop failed!\n");
         }else{
@@ -69,7 +69,7 @@ void* Resolver_function(FILE* outputfile, queue* qpoint,void* vpoi){
 		strncpy(firstipstr, "", sizeof(firstipstr));
 	    }else{
 	        /* Lookup, successful, Write to Output File */
-	        fprintf(outputfile, "%s,%s\n", hname, firstipstr);
+	        fprintf(stuf->fpoi, "%s,%s\n", hname, firstipstr);
 	    }
         }
     }
@@ -181,8 +181,8 @@ int main(int argc, char* argv[]){
 	stuffs[1].qpoi = &theq;
 	stuffs[1].intpoi = &finish[0];
 
-	Requester_function(inputfp, &theq, &stuffs[1]);
-	Resolver_function(outputfp, &theq, &stuffs[0]);
+	Requester_function(&stuffs[1]);
+	Resolver_function(&stuffs[0]);
 
 	/* Close Input File */
 	fclose(inputfp);
