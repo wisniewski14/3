@@ -25,6 +25,8 @@
 void* Requester_function(FILE* inf, queue* qpoint,void* vpoi){
 	char* hostnames[Q_SIZE];
 	int i;
+	inf=inf;
+	struct threadstuff* stuf = vpoi;
 	/* Setup hostnames as char* array from
 	 * 0 to Q_SIZE-1 */
 	for(i=0; i<Q_SIZE; i++){
@@ -32,7 +34,7 @@ void* Requester_function(FILE* inf, queue* qpoint,void* vpoi){
 	}
 	i=0;
 	/* Read File and Process*/
-	while(fscanf(inf, INPUTFS, hostnames[i]) > 0){
+	while(fscanf(stuf->fpoi, INPUTFS, hostnames[i]) > 0){
 	    /* Write to queue */
 	    if(queue_push(qpoint, hostnames[i]) == QUEUE_FAILURE){
               fprintf(stderr,
@@ -135,7 +137,7 @@ int main(int argc, char* argv[]){
     char errorstr[SBUFSIZE];
     int i;
     int numstructs=argc;
-
+    numstructs=numstructs;
     /* Need to malloc these? XXXXXXX */ 
     struct threadstuff stuffs[2];     
     int finish[1];

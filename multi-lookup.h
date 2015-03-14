@@ -22,4 +22,4 @@ typedef struct threadstuff{
     FILE* fpoi;
     queue* qpoi;
     int* intpoi;
-};
+} test;
