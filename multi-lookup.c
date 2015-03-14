@@ -13,6 +13,7 @@
 
 #include "util.h"
 #include "queue.h"
+#include "multi-lookup.h"
 
 #define MINARGS 3
 #define USAGE "<inputFilePath> <outputFilePath>"
@@ -21,7 +22,7 @@
 #define Q_SIZE 100
 #define NUM_THREADS 5
 
-void* Requester_function(FILE* inf, queue* qpoint){
+void* Requester_function(FILE* inf, queue* qpoint,void* vpoi){
 	char* hostnames[Q_SIZE];
 	int i;
 	/* Setup hostnames as char* array from
@@ -42,14 +43,14 @@ void* Requester_function(FILE* inf, queue* qpoint){
               //fprintf(stderr, "\nPushed hostname: %s\n", hostname);
 	    }
             i=i+1;
-	    if(i=Q_SIZE){
+	    if(i==Q_SIZE){
 		i=0;
 	    }
 	}
 	return NULL;
 } 
 
-void* Resolver_function(FILE* outputfile, queue* qpoint){
+void* Resolver_function(FILE* outputfile, queue* qpoint,void* vpoi){
     char* hname;
     char firstipstr[INET6_ADDRSTRLEN];
     while(!queue_is_empty(qpoint)){
@@ -136,8 +137,8 @@ int main(int argc, char* argv[]){
     int numstructs=argc;
 
     /* Need to malloc these? XXXXXXX */ 
-    struct threadstuff stuffs[];     
-    int finish[];
+    struct threadstuff stuffs[2];     
+    int finish[1];
 
     /* Initialize Queue */
     if(queue_init(&theq, qSize) == QUEUE_FAILURE){
@@ -159,9 +160,9 @@ int main(int argc, char* argv[]){
 	return EXIT_FAILURE;
     }
     /* Struct for resolver threads */
-    stuffs[0].fp = outputfp;
-    stuffs[0].q = &theq;
-    stuffs[0].finp = finish;
+    stuffs[0].fpoi = outputfp;
+    stuffs[0].qpoi = &theq;
+    stuffs[0].intpoi = finish;
 
     /* Loop Through Input Files */
     for(i=1; i<(argc-1); i++){
@@ -174,12 +175,12 @@ int main(int argc, char* argv[]){
 	    break;
 	}	
 	/* Structs for requester threads */
-	stuffs[i].fp = inputfp;
-	stuffs[i].q = &theq;
-	stuffs[i].finp = finish[i-1];
+	stuffs[1].fpoi = inputfp;
+	stuffs[1].qpoi = &theq;
+	stuffs[1].intpoi = &finish[0];
 
-	Requester_function(inputfp, &theq, stuffs[i]);
-	Resolver_function(outputfp, &theq, stuffs[0]);
+	Requester_function(inputfp, &theq, &stuffs[1]);
+	Resolver_function(outputfp, &theq, &stuffs[0]);
 
 	/* Close Input File */
 	fclose(inputfp);
